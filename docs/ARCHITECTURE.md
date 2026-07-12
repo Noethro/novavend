@@ -62,3 +62,11 @@ Redis under hashed IP/email fingerprints with an atomic counter-and-expiry Lua o
 closed when Redis is unavailable. Passwords,
 cookies, session tokens, hashes, and credential headers are excluded from logs and audit metadata.
 See [ADR-0003](ADR/0003-opaque-server-sessions.md).
+
+## Avatar pairing boundary
+
+TASK-005 adds a reusable active-membership authorization service and a workspace-scoped one-time
+avatar-pairing repository. Browser operations require the existing session guard plus membership;
+owner and manager roles mutate while all active roles may read. Public in-world claims use the
+versioned protocol parser, simulator-derived owner/object UUIDs, atomic Redis throttles, and a
+transaction-locked hash-only challenge. See [ADR-0004](ADR/0004-one-time-avatar-pairing.md).

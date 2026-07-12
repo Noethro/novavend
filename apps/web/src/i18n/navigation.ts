@@ -1,11 +1,16 @@
 import type { TranslationKey } from './dictionaries';
 
 export type NavigationItem =
-  | { key: TranslationKey; href: '/' | '/status'; comingSoon: false }
+  | {
+      key: TranslationKey;
+      href: '/' | '/status' | '/avatars';
+      comingSoon: false;
+    }
   | { key: TranslationKey; comingSoon: true };
 
 export const navigationItems: readonly NavigationItem[] = [
   { key: 'nav.overview', href: '/', comingSoon: false },
+  { key: 'nav.avatars', href: '/avatars', comingSoon: false },
   { key: 'nav.products', comingSoon: true },
   { key: 'nav.vendors', comingSoon: true },
   { key: 'nav.sales', comingSoon: true },

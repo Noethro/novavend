@@ -68,6 +68,12 @@ TASK-004 adds `0001_bizarre_scalphunter.sql` after the tenancy migration. It cre
 Session indexes support unique token lookup, active token/expiry/revocation lookup, per-user lookup,
 and explicit expiry cleanup. Raw passwords and opaque session tokens never enter PostgreSQL.
 
+TASK-005 adds `0002_robust_gravity.sql` and `avatar_pairing_challenges`. Challenges are scoped to a
+workspace and creator, contain only a unique SHA-256 token hash, and transition one-way through
+`pending`, `claimed`, `cancelled`, or `expired`. Check constraints bind claimed/cancelled timestamps
+and avatar/message identifiers to their states. Claim processing locks the challenge and updates the
+global avatar identity, workspace link, challenge, and audit log in one transaction.
+
 ## Local reset
 
 The development reset is intentionally destructive and must only target local Docker volumes:

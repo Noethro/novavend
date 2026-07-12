@@ -81,3 +81,46 @@ export type OnboardingWorkspaceRequest = z.infer<
   typeof OnboardingWorkspaceRequestSchema
 >;
 export type AuthSessionResponse = z.infer<typeof AuthSessionResponseSchema>;
+
+export const AvatarPairingStatusSchema = z.enum([
+  'pending',
+  'claimed',
+  'cancelled',
+  'expired',
+]);
+export const LinkedAvatarSummarySchema = z.object({
+  avatarUuid: z.uuid(),
+  displayName: z.string().nullable(),
+  id: z.uuid(),
+  legacyName: z.string().nullable(),
+  linkedAt: z.iso.datetime(),
+});
+export const CreateAvatarPairingResponseSchema = z.object({
+  challengeId: z.uuid(),
+  expiresAt: z.iso.datetime(),
+  pairingToken: z.string().min(20),
+  status: z.literal('pending'),
+});
+export const AvatarPairingStatusResponseSchema = z.object({
+  avatar: LinkedAvatarSummarySchema.optional(),
+  challengeId: z.uuid(),
+  expiresAt: z.iso.datetime(),
+  status: AvatarPairingStatusSchema,
+});
+export const LinkedAvatarListResponseSchema = z.object({
+  avatars: z.array(LinkedAvatarSummarySchema),
+});
+export const AvatarPairingClaimResponseSchema = z.object({
+  code: z.enum(['LINKED', 'REACTIVATED', 'REPLAYED']),
+  ok: z.literal(true),
+});
+
+export type CreateAvatarPairingResponse = z.infer<
+  typeof CreateAvatarPairingResponseSchema
+>;
+export type AvatarPairingStatusResponse = z.infer<
+  typeof AvatarPairingStatusResponseSchema
+>;
+export type LinkedAvatarListResponse = z.infer<
+  typeof LinkedAvatarListResponseSchema
+>;

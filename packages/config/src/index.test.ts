@@ -90,4 +90,24 @@ describe('authentication configuration', () => {
         .NEXT_PUBLIC_PREVIEW_MODE,
     ).toBe(false);
   });
+
+  it('validates secure avatar-pairing expiry and clock-skew bounds', () => {
+    const parsed = loadApiConfig({ ...database, ...redis });
+    expect(parsed.AVATAR_PAIRING_TTL_SECONDS).toBe(600);
+    expect(parsed.AVATAR_PAIRING_CLOCK_SKEW_SECONDS).toBe(300);
+    expect(() =>
+      loadApiConfig({
+        ...database,
+        ...redis,
+        AVATAR_PAIRING_TTL_SECONDS: '10',
+      }),
+    ).toThrow();
+    expect(() =>
+      loadApiConfig({
+        ...database,
+        ...redis,
+        AVATAR_PAIRING_CLOCK_SKEW_SECONDS: '9999',
+      }),
+    ).toThrow();
+  });
 });

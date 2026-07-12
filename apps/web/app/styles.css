@@ -664,3 +664,30 @@ a {
   padding: 2rem;
   text-align: center;
 }
+
+.avatars-page {
+  display: grid;
+  gap: 1rem;
+}
+.avatar-panel {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: var(--panel);
+}
+.pairing-token,
+.avatar-card {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: rgba(15, 42, 34, 0.7);
+}
+.pairing-token code,
+.avatar-card code {
+  overflow-wrap: anywhere;
+}
+.preview-token {
+  color: var(--muted);
+}

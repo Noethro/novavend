@@ -37,6 +37,7 @@ hydration mismatch.
   resolution.
 - `apps/web/src/i18n/dictionaries.ts`: the canonical English key set and all six source dictionaries.
 - `apps/web/src/i18n/auth-dictionaries.ts`: complete authentication/onboarding text for all six locales.
+- `apps/web/src/i18n/avatar-dictionaries.ts`: complete avatar-pairing text for all six locales.
 - `apps/web/src/i18n/locale-provider.tsx`: the single React locale state boundary and typed translator.
 - `apps/web/src/i18n/formatters.ts`: shared date, time, integer, decimal, percentage, and `L$`
   formatting.
@@ -84,3 +85,6 @@ markers.
 Authentication routes use the same provider and browser preference. `/login`, `/register`, and
 `/onboarding` are not locale-prefixed and remain exportable beneath `/novavend`. Preview mode renders
 localized forms but disables submission before any network request.
+
+`/avatars` uses the same provider and remains statically exportable. Preview mode renders pairing
+instructions and explicitly non-usable sample states while disabling all pairing network actions.

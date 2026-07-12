@@ -75,3 +75,34 @@ test('renders honest authentication preview routes without API requests', async 
   ).toBeVisible();
   expect(apiRequests).toEqual([]);
 });
+
+test('renders a network-free localized avatar pairing preview', async ({
+  page,
+}) => {
+  const apiRequests: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().includes('api.not-hosted.invalid'))
+      apiRequests.push(request.url());
+  });
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto('/avatars/');
+  await expect(
+    page.locator('[data-avatars-marker="novavend-avatars"]'),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Create pairing token' }),
+  ).toBeDisabled();
+  await expect(page.getByText(/no usable token is generated/i)).toBeVisible();
+  await page.getByRole('combobox', { name: 'Language' }).selectOption('tr');
+  await expect(
+    page.getByRole('heading', { name: 'Second Life avatarları' }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: 'Second Life avatarları' }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(320);
+  expect(apiRequests).toEqual([]);
+});

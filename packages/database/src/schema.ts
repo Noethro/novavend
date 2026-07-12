@@ -5,6 +5,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  check,
   primaryKey,
   text,
   timestamp,
@@ -51,6 +52,12 @@ export const idempotencyStatusEnum = pgEnum('idempotency_status', [
   'in_progress',
   'completed',
   'failed',
+]);
+export const avatarPairingStatusEnum = pgEnum('avatar_pairing_status', [
+  'pending',
+  'claimed',
+  'cancelled',
+  'expired',
 ]);
 
 export const users = pgTable(
@@ -229,6 +236,66 @@ export const workspaceAvatarAccounts = pgTable(
   ],
 );
 
+export const avatarPairingChallenges = pgTable(
+  'avatar_pairing_challenges',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, {
+        onDelete: 'restrict',
+        onUpdate: 'cascade',
+      }),
+    createdByUserId: uuid('created_by_user_id')
+      .notNull()
+      .references(() => users.id, {
+        onDelete: 'restrict',
+        onUpdate: 'cascade',
+      }),
+    tokenHash: text('token_hash').notNull(),
+    status: avatarPairingStatusEnum('status').default('pending').notNull(),
+    expiresAt: timestamp('expires_at', {
+      mode: 'date',
+      withTimezone: true,
+    }).notNull(),
+    claimedAt: timestamp('claimed_at', { mode: 'date', withTimezone: true }),
+    cancelledAt: timestamp('cancelled_at', {
+      mode: 'date',
+      withTimezone: true,
+    }),
+    claimedAvatarAccountId: uuid('claimed_avatar_account_id').references(
+      () => avatarAccounts.id,
+      { onDelete: 'restrict', onUpdate: 'cascade' },
+    ),
+    claimedMessageId: uuid('claimed_message_id'),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('avatar_pairing_challenges_token_hash_unique').on(
+      table.tokenHash,
+    ),
+    uniqueIndex('avatar_pairing_challenges_message_unique')
+      .on(table.claimedMessageId)
+      .where(sql`${table.claimedMessageId} is not null`),
+    index('avatar_pairing_challenges_workspace_status_expiry_idx').on(
+      table.workspaceId,
+      table.status,
+      table.expiresAt,
+    ),
+    index('avatar_pairing_challenges_expiry_idx').on(table.expiresAt),
+    index('avatar_pairing_challenges_claimed_avatar_idx').on(
+      table.claimedAvatarAccountId,
+    ),
+    check(
+      'avatar_pairing_challenges_state_check',
+      sql`(${table.status} = 'pending' and ${table.claimedAt} is null and ${table.cancelledAt} is null and ${table.claimedAvatarAccountId} is null and ${table.claimedMessageId} is null)
+        or (${table.status} = 'claimed' and ${table.claimedAt} is not null and ${table.cancelledAt} is null and ${table.claimedAvatarAccountId} is not null and ${table.claimedMessageId} is not null)
+        or (${table.status} = 'cancelled' and ${table.cancelledAt} is not null and ${table.claimedAt} is null and ${table.claimedAvatarAccountId} is null and ${table.claimedMessageId} is null)
+        or (${table.status} = 'expired' and ${table.claimedAt} is null and ${table.cancelledAt} is null and ${table.claimedAvatarAccountId} is null and ${table.claimedMessageId} is null)`,
+    ),
+  ],
+);
+
 export const auditLogs = pgTable(
   'audit_logs',
   {
@@ -301,6 +368,7 @@ export const idempotencyRecords = pgTable(
 );
 
 export const schema = {
+  avatarPairingChallenges,
   auditLogs,
   avatarAccounts,
   idempotencyRecords,
@@ -321,6 +389,8 @@ export type Workspace = typeof workspaces.$inferSelect;
 export type NewWorkspace = typeof workspaces.$inferInsert;
 export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
 export type AvatarAccount = typeof avatarAccounts.$inferSelect;
+export type AvatarPairingChallenge =
+  typeof avatarPairingChallenges.$inferSelect;
 export type WorkspaceAvatarAccount =
   typeof workspaceAvatarAccounts.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;

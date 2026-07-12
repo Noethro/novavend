@@ -9,12 +9,21 @@ const expectedPages = [
   'login/index.html',
   'register/index.html',
   'onboarding/index.html',
+  'avatars/index.html',
 ];
 
 for (const page of expectedPages) {
   if (!existsSync(resolve(outputDirectory, page))) {
     throw new Error(`Missing static export page: ${page}`);
   }
+}
+
+const avatars = readFileSync(
+  resolve(outputDirectory, 'avatars/index.html'),
+  'utf8',
+);
+if (!avatars.includes('data-avatars-marker="novavend-avatars"')) {
+  throw new Error('Avatar pairing preview marker is missing');
 }
 
 const home = readFileSync(resolve(outputDirectory, 'index.html'), 'utf8');

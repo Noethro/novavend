@@ -6,6 +6,12 @@ import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AuthController, OnboardingController } from './auth.controller';
 import { AuthenticationGuard } from './auth.guard';
+import { AvatarPairingService } from './avatar-pairing.service';
+import {
+  SecondLifeAvatarPairingController,
+  WorkspaceAvatarController,
+} from './avatar-pairing.controller';
+import { WorkspaceAccessService } from './workspace-access.service';
 import { AuthService } from './auth.service';
 import {
   HealthService,
@@ -35,10 +41,18 @@ const config = loadApiConfig(process.env);
       },
     }),
   ],
-  controllers: [AppController, AuthController, OnboardingController],
+  controllers: [
+    AppController,
+    AuthController,
+    OnboardingController,
+    WorkspaceAvatarController,
+    SecondLifeAvatarPairingController,
+  ],
   providers: [
     AuthService,
     AuthenticationGuard,
+    AvatarPairingService,
+    WorkspaceAccessService,
     HealthService,
     InfrastructureService,
     {
