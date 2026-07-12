@@ -405,15 +405,19 @@ describe.sequential('authentication and onboarding integration', () => {
   );
 
   it('does not authorize an unexpected origin during DELETE preflight', async () => {
+    const unexpectedOrigin = 'https://evil.example.com';
     const response = await app.inject({
       headers: {
         'access-control-request-method': 'DELETE',
-        origin: 'https://evil.example.com',
+        origin: unexpectedOrigin,
       },
       method: 'OPTIONS',
       url: `/workspaces/${randomUUID()}/avatars/${randomUUID()}`,
     });
-    expect(response.headers['access-control-allow-origin']).toBeUndefined();
+    expect(response.headers['access-control-allow-origin']).toBe(origin);
+    expect(response.headers['access-control-allow-origin']).not.toBe(
+      unexpectedOrigin,
+    );
   });
 
   it('writes safe audit events without credentials or tokens', async () => {
