@@ -1,4 +1,9 @@
 import type { Locale } from './locales';
+import {
+  authDictionaries,
+  type AuthDictionary,
+  type AuthTranslationKey,
+} from './auth-dictionaries';
 
 export const englishDictionary = {
   skipToContent: 'Skip to main content',
@@ -57,8 +62,8 @@ export const englishDictionary = {
   'status.unhostedDetail': 'Planned for a future managed deployment.',
 } as const;
 
-export type TranslationKey = keyof typeof englishDictionary;
-export type Dictionary = Record<TranslationKey, string>;
+type BaseTranslationKey = keyof typeof englishDictionary;
+type Dictionary = Record<BaseTranslationKey, string>;
 
 const tr: Dictionary = {
   skipToContent: 'Ana içeriğe geç',
@@ -346,18 +351,20 @@ const ja: Dictionary = {
   'status.unhostedDetail': '今後のマネージド環境で提供予定です。',
 };
 
-export const dictionaries: Record<Locale, Dictionary> = {
-  en: englishDictionary,
-  tr,
-  de,
-  ru,
-  'zh-CN': zhCN,
-  ja,
+export type TranslationKey = BaseTranslationKey | AuthTranslationKey;
+type CompleteDictionary = Dictionary & AuthDictionary;
+
+export const dictionaries: Record<Locale, CompleteDictionary> = {
+  en: { ...englishDictionary, ...authDictionaries.en },
+  tr: { ...tr, ...authDictionaries.tr },
+  de: { ...de, ...authDictionaries.de },
+  ru: { ...ru, ...authDictionaries.ru },
+  'zh-CN': { ...zhCN, ...authDictionaries['zh-CN'] },
+  ja: { ...ja, ...authDictionaries.ja },
 };
 
 export const translate = (
   locale: Locale,
   key: TranslationKey,
-  source: Partial<Record<Locale, Partial<Dictionary>>> = dictionaries,
-): string =>
-  source[locale]?.[key] ?? source.en?.[key] ?? englishDictionary[key];
+  source: Partial<Record<Locale, Partial<CompleteDictionary>>> = dictionaries,
+): string => source[locale]?.[key] ?? source.en?.[key] ?? dictionaries.en[key];

@@ -57,3 +57,37 @@ describe('worker sample processor flag', () => {
     ).toThrow();
   });
 });
+
+describe('authentication configuration', () => {
+  it('derives secure cookies in production and keeps exact HTTPS origin', () => {
+    const config = loadApiConfig({
+      ...database,
+      ...redis,
+      API_ALLOWED_WEB_ORIGIN: 'https://app.example.com',
+      NODE_ENV: 'production',
+    });
+    expect(config.SESSION_COOKIE_SECURE).toBe(true);
+    expect(config.SESSION_TTL_SECONDS).toBe(604_800);
+  });
+
+  it('rejects insecure production origins and malformed limits', () => {
+    expect(() =>
+      loadApiConfig({
+        ...database,
+        ...redis,
+        API_ALLOWED_WEB_ORIGIN: 'http://app.example.com',
+        NODE_ENV: 'production',
+      }),
+    ).toThrow();
+    expect(() =>
+      loadApiConfig({ ...database, ...redis, AUTH_LOGIN_IP_LIMIT: '0' }),
+    ).toThrow();
+  });
+
+  it('defaults the frontend preview mode to disabled', () => {
+    expect(
+      loadWebConfig({ NEXT_PUBLIC_API_URL: 'https://api.example.com' })
+        .NEXT_PUBLIC_PREVIEW_MODE,
+    ).toBe(false);
+  });
+});

@@ -3,7 +3,13 @@ import { resolve } from 'node:path';
 import { stdout } from 'node:process';
 
 const outputDirectory = resolve(import.meta.dirname, '..', 'out');
-const expectedPages = ['index.html', 'status/index.html'];
+const expectedPages = [
+  'index.html',
+  'status/index.html',
+  'login/index.html',
+  'register/index.html',
+  'onboarding/index.html',
+];
 
 for (const page of expectedPages) {
   if (!existsSync(resolve(outputDirectory, page))) {
@@ -28,6 +34,16 @@ const status = readFileSync(
 );
 if (!status.includes('data-status-marker="novavend-status"')) {
   throw new Error('System status marker is missing');
+}
+
+for (const route of ['login', 'register', 'onboarding']) {
+  const html = readFileSync(
+    resolve(outputDirectory, route, 'index.html'),
+    'utf8',
+  );
+  if (!html.includes(`data-auth-screen="${route}"`)) {
+    throw new Error(`Authentication preview marker is missing for ${route}`);
+  }
 }
 
 stdout.write(`Static export verified: ${expectedPages.join(', ')}\n`);

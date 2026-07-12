@@ -7,7 +7,13 @@ import { CORRELATION_ID_HEADER, resolveCorrelationId } from './correlation';
 export const configureApi = (
   app: INestApplication,
   nodeEnvironment: 'development' | 'test' | 'production',
+  allowedWebOrigin = 'http://localhost:3000',
 ): void => {
+  app.enableCors({
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    origin: allowedWebOrigin,
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       forbidNonWhitelisted: true,

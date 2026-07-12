@@ -45,3 +45,33 @@ test('keeps mobile navigation accessible at 320px', async ({ page }) => {
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(320);
 });
+
+test('renders honest authentication preview routes without API requests', async ({
+  page,
+}) => {
+  const apiRequests: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().includes('api.not-hosted.invalid')) {
+      apiRequests.push(request.url());
+    }
+  });
+
+  for (const route of ['/login/', '/register/', '/onboarding/']) {
+    await page.goto(route);
+    await expect(page.locator('[data-auth-screen]')).toBeVisible();
+    await expect(
+      page.locator('[data-auth-screen] button[type="submit"]'),
+    ).toBeDisabled();
+  }
+
+  await page.goto('/login/');
+  await page.getByRole('combobox', { name: 'Language' }).selectOption('tr');
+  await expect(
+    page.getByRole('heading', { name: 'NovaVend hesabına giriş yap' }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: 'NovaVend hesabına giriş yap' }),
+  ).toBeVisible();
+  expect(apiRequests).toEqual([]);
+});

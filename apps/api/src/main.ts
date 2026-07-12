@@ -17,7 +17,7 @@ async function bootstrap(): Promise<void> {
     { bufferLogs: true },
   );
   app.useLogger(app.get(Logger));
-  configureApi(app, config.NODE_ENV);
+  configureApi(app, config.NODE_ENV, config.API_ALLOWED_WEB_ORIGIN);
   app.enableShutdownHooks();
   await app.listen(config.API_PORT, '0.0.0.0');
 }

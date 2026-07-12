@@ -14,6 +14,9 @@ import { LocaleProvider } from '../i18n/locale-provider';
 import { localeStorageKey } from '../i18n/locales';
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/' }));
+vi.mock('../auth/session-gate', () => ({
+  SessionGate: ({ children }: { children: ReactNode }) => children,
+}));
 
 afterEach(cleanup);
 

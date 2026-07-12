@@ -15,7 +15,7 @@ jobs:
           run_install: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
@@ -53,6 +53,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://novavend:novavend@127.0.0.1:5432/novavend
       REDIS_URL: redis://127.0.0.1:6379
+      API_ALLOWED_WEB_ORIGIN: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -60,7 +61,7 @@ jobs:
           run_install: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:integration
@@ -74,7 +75,7 @@ jobs:
           run_install: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
@@ -85,6 +86,7 @@ jobs:
     env:
       GITHUB_PAGES: 'true'
       NEXT_PUBLIC_API_URL: https://api.not-hosted.invalid
+      NEXT_PUBLIC_PREVIEW_MODE: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -92,7 +94,7 @@ jobs:
           run_install: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @novavend/web build

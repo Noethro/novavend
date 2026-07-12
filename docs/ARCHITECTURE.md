@@ -43,3 +43,22 @@ with both normal Next.js builds and the `/novavend` GitHub Pages static export.
 
 See [the internationalization guide](INTERNATIONALIZATION.md) for locale resolution, dictionary, and
 testing rules.
+
+## Authentication boundary
+
+TASK-004 adds password credentials and opaque server-side sessions behind a focused authentication
+repository and NestJS service. Global identity resolution does not grant workspace authorization;
+workspace data still requires an explicit workspace and active membership. Registration creates a
+pending user and credential atomically. First onboarding serializes by user, creates the workspace
+and active owner membership in one transaction, activates the user, and appends a safe audit event.
+
+A reusable NestJS authentication guard resolves the opaque cookie once and attaches a typed request
+identity for protected controllers. The server-capable web shell resolves `GET /auth/session` before
+showing protected dashboard content and provides server-backed logout. Static preview mode bypasses
+this lifecycle without issuing session or logout requests.
+
+Browser mutations require the exact configured origin. Registration and login limits are stored in
+Redis under hashed IP/email fingerprints with an atomic counter-and-expiry Lua operation and fail
+closed when Redis is unavailable. Passwords,
+cookies, session tokens, hashes, and credential headers are excluded from logs and audit metadata.
+See [ADR-0003](ADR/0003-opaque-server-sessions.md).

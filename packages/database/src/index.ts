@@ -5,6 +5,7 @@ import { schema } from './schema';
 export * from './domain';
 export * from './schema';
 export * from './repositories/audit';
+export * from './repositories/authentication';
 export * from './repositories/avatars';
 export * from './repositories/idempotency';
 export * from './repositories/users';

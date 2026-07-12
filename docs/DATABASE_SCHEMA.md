@@ -5,6 +5,8 @@
 ```mermaid
 erDiagram
   USERS ||--o{ WORKSPACES : creates
+  USERS ||--o| USER_PASSWORD_CREDENTIALS : authenticates
+  USERS ||--o{ USER_SESSIONS : owns
   USERS ||--o{ WORKSPACE_MEMBERS : joins
   WORKSPACES ||--o{ WORKSPACE_MEMBERS : contains
   AVATAR_ACCOUNTS ||--o{ WORKSPACE_AVATAR_ACCOUNTS : linked_as
@@ -55,6 +57,16 @@ pnpm db:migrate
 ```
 
 The committed initial migration is `packages/database/drizzle/0000_core_tenancy.sql` with its Drizzle snapshot and journal metadata.
+
+TASK-004 adds `0001_bizarre_scalphunter.sql` after the tenancy migration. It creates:
+
+- `user_password_credentials`, keyed one-to-one by `user_id`, containing only the Argon2id hash and
+  credential timestamps.
+- `user_sessions`, containing a UUID identifier, user foreign key, unique SHA-256 `token_hash`,
+  creation/last-seen/expiry timestamps, and nullable revocation timestamp.
+
+Session indexes support unique token lookup, active token/expiry/revocation lookup, per-user lookup,
+and explicit expiry cleanup. Raw passwords and opaque session tokens never enter PostgreSQL.
 
 ## Local reset
 
