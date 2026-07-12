@@ -63,4 +63,4 @@ The frontend-only development preview is available at
 [https://noethro.github.io/novavend/](https://noethro.github.io/novavend/). No local installation is
 required to view it. The Pages preview does not host an API, database, authentication, or commerce
 services; those require a future managed deployment. Approved changes are rebuilt and deployed
-automatically after they are merged into `main`.
+automatically after they are merged into `main`. GitHub Actions is the configured Pages publishing source.
