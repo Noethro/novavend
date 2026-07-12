@@ -1,22 +1,13 @@
 import type { ButtonHTMLAttributes } from 'react';
 
 export function Button({
-  style,
+  className = '',
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...props}
-      style={{
-        width: 'fit-content',
-        border: '1px solid #38775a',
-        borderRadius: '999px',
-        padding: '0.75rem 1rem',
-        background: '#10291f',
-        color: '#a8d9c1',
-        font: 'inherit',
-        ...style,
-      }}
+      className={`w-fit rounded-full border border-emerald-800 bg-emerald-950 px-4 py-3 text-emerald-200 disabled:cursor-not-allowed disabled:opacity-70 ${className}`}
     />
   );
 }

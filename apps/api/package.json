@@ -7,22 +7,30 @@
     "dev": "tsx watch src/main.ts",
     "lint": "eslint .",
     "start": "node dist/main.js",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run --exclude **/*.integration.test.ts",
+    "test:integration": "vitest run src/infrastructure.integration.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@nestjs/common": "latest",
     "@nestjs/core": "latest",
     "@nestjs/platform-fastify": "latest",
+    "@nestjs/swagger": "latest",
     "@novavend/config": "workspace:*",
     "@novavend/contracts": "workspace:*",
+    "@novavend/database": "workspace:*",
+    "class-transformer": "latest",
+    "class-validator": "latest",
     "fastify": "latest",
+    "ioredis": "latest",
     "nestjs-pino": "latest",
     "pino": "latest",
     "reflect-metadata": "latest",
-    "rxjs": "latest"
+    "rxjs": "latest",
+    "zod": "latest"
   },
   "devDependencies": {
+    "@nestjs/testing": "latest",
     "tsx": "latest"
   }
 }

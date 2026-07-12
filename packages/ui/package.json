@@ -9,14 +9,16 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "lint": "eslint .",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
     "react": ">=19"
   },
   "devDependencies": {
+    "@testing-library/react": "latest",
     "@types/react": "latest",
+    "jsdom": "latest",
     "react": "latest"
   }
 }

@@ -15,6 +15,10 @@
     "test": {
       "dependsOn": ["^build"]
     },
+    "test:integration": {
+      "cache": false,
+      "dependsOn": ["^build"]
+    },
     "typecheck": {
       "dependsOn": ["^typecheck"]
     }

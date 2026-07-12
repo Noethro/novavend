@@ -7,6 +7,7 @@ import {
 import { loadApiConfig } from '@novavend/config';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
+import { configureApi } from './configure-api';
 
 async function bootstrap(): Promise<void> {
   const config = loadApiConfig(process.env);
@@ -16,6 +17,7 @@ async function bootstrap(): Promise<void> {
     { bufferLogs: true },
   );
   app.useLogger(app.get(Logger));
+  configureApi(app, config.NODE_ENV);
   app.enableShutdownHooks();
   await app.listen(config.API_PORT, '0.0.0.0');
 }

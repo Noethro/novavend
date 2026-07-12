@@ -8,8 +8,11 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
     "lint": "eslint .",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

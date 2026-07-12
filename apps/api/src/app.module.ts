@@ -1,16 +1,64 @@
 import { Module } from '@nestjs/common';
+import { loadApiConfig } from '@novavend/config';
+import { createDatabase } from '@novavend/database';
+import Redis from 'ioredis';
 import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
+import {
+  HealthService,
+  POSTGRES_HEALTH_CHECK,
+  REDIS_HEALTH_CHECK,
+} from './health.service';
+import {
+  DATABASE_RESOURCE,
+  InfrastructureService,
+  REDIS_RESOURCE,
+  type DatabaseResource,
+} from './infrastructure.service';
+
+const config = loadApiConfig(process.env);
 
 @Module({
   imports: [
     LoggerModule.forRoot({
       pinoHttp: {
-        level: process.env.LOG_LEVEL ?? 'info',
+        customProps: (request) => ({ correlationId: request.id }),
+        level: config.LOG_LEVEL,
         redact: ['req.headers.authorization'],
       },
     }),
   ],
   controllers: [AppController],
+  providers: [
+    HealthService,
+    InfrastructureService,
+    {
+      provide: DATABASE_RESOURCE,
+      useFactory: () => createDatabase(config.DATABASE_URL),
+    },
+    {
+      provide: REDIS_RESOURCE,
+      useFactory: () =>
+        new Redis(config.REDIS_URL, {
+          enableOfflineQueue: false,
+          lazyConnect: true,
+          maxRetriesPerRequest: 1,
+        }),
+    },
+    {
+      provide: POSTGRES_HEALTH_CHECK,
+      inject: [DATABASE_RESOURCE],
+      useFactory: (database: DatabaseResource) => () =>
+        database.checkConnectivity(),
+    },
+    {
+      provide: REDIS_HEALTH_CHECK,
+      inject: [REDIS_RESOURCE],
+      useFactory: (redis: Redis) => async () => {
+        if (redis.status === 'wait') await redis.connect();
+        await redis.ping();
+      },
+    },
+  ],
 })
 export class AppModule {}
