@@ -64,3 +64,8 @@ The frontend-only development preview is available at
 required to view it. The Pages preview does not host an API, database, authentication, or commerce
 services; those require a future managed deployment. Approved changes are rebuilt and deployed
 automatically after they are merged into `main`. GitHub Actions is the configured Pages publishing source.
+
+The dashboard language selector supports English, Türkçe, Deutsch, Русский, 简体中文, and 日本語.
+Language selection is stored in the browser and applies to both the overview and system-status pages.
+Localization architecture and contribution rules are documented in
+[the internationalization guide](docs/INTERNATIONALIZATION.md).
