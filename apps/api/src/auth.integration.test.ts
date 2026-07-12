@@ -717,6 +717,5 @@ describe.sequential('authentication and onboarding integration', () => {
     });
     expect(response.statusCode).toBe(503);
     expect(response.json().code).toBe('PAIRING_RATE_LIMIT_UNAVAILABLE');
-    await appRedis.connect();
   });
 });
