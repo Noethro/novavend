@@ -1,0 +1,15 @@
+.env
+.env.local
+.agents/
+.codex/
+.next/
+.turbo/
+coverage/
+dist/
+node_modules/
+outputs/
+playwright-report/
+test-results/
+work/
+*.log
+*.tsbuildinfo
