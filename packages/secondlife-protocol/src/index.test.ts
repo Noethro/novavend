@@ -56,10 +56,30 @@ describe('device types', () => {
 const claim: AvatarPairingClaimEnvelope = {
   ...envelope,
   deviceType: DeviceType.AvatarLink,
-  payload: { pairingToken: 'safe_base64url_token_value' },
+  payload: { pairingToken: '0123456789abcdefghijklmnopqrstuv' },
 };
 
 describe('avatar pairing protocol', () => {
+  it('accepts only an exact 32-character base64url pairing token', () => {
+    expect(AvatarPairingClaimEnvelopeSchema.safeParse(claim).success).toBe(
+      true,
+    );
+    for (const pairingToken of [
+      'A'.repeat(31),
+      'A'.repeat(33),
+      `${'A'.repeat(31)}=`,
+      `${'A'.repeat(31)} `,
+      `${'A'.repeat(31)}+`,
+    ]) {
+      expect(
+        AvatarPairingClaimEnvelopeSchema.safeParse({
+          ...claim,
+          payload: { pairingToken },
+        }).success,
+      ).toBe(false);
+    }
+  });
+
   it('accepts a strict, timely claim and matching simulator identity', () => {
     const parsed = parseAvatarPairingClaim(
       claim,

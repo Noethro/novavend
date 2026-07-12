@@ -32,12 +32,48 @@ export const shouldPollPairing = (
   failures < 3 &&
   pairingSecondsRemaining(expiresAt, now) > 0;
 
+export const copyPairingToken = async (
+  pairingToken: string,
+  clipboard:
+    Pick<Clipboard, 'writeText'> | null | undefined = navigator.clipboard,
+  documentTarget: Document = document,
+): Promise<boolean> => {
+  if (clipboard?.writeText) {
+    try {
+      await clipboard.writeText(pairingToken);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const textarea = documentTarget.createElement('textarea');
+  const activeElement = documentTarget.activeElement as HTMLElement | null;
+  textarea.value = pairingToken;
+  textarea.setAttribute('aria-hidden', 'true');
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  documentTarget.body.append(textarea);
+  textarea.select();
+  try {
+    return documentTarget.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    textarea.remove();
+    activeElement?.focus();
+  }
+};
+
 export function AvatarPairingPage({
   fetcher = fetch,
   isPreview = previewMode,
+  copyText = copyPairingToken,
 }: {
   fetcher?: typeof fetch;
   isPreview?: boolean;
+  copyText?: (value: string) => Promise<boolean>;
 }) {
   const { t } = useLocale();
   const [workspace, setWorkspace] = useState<{
@@ -49,6 +85,9 @@ export function AvatarPairingPage({
   const [challenge, setChallenge] = useState<Challenge>();
   const [remaining, setRemaining] = useState(0);
   const [error, setError] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<
+    'success' | 'failure' | undefined
+  >();
   const failures = useRef(0);
 
   const request = async (path: string, init?: RequestInit) => {
@@ -134,6 +173,7 @@ export function AvatarPairingPage({
   const create = async () => {
     if (!workspace || isPreview) return;
     setError(false);
+    setCopyFeedback(undefined);
     try {
       const response = await request(
         `/workspaces/${workspace.id}/avatar-pairings`,
@@ -159,6 +199,14 @@ export function AvatarPairingPage({
       pairingToken: undefined,
       status: 'cancelled',
     });
+    setCopyFeedback(undefined);
+  };
+
+  const copy = async () => {
+    if (!challenge?.pairingToken || isPreview) return;
+    setCopyFeedback(
+      (await copyText(challenge.pairingToken)) ? 'success' : 'failure',
+    );
   };
 
   const revoke = async (avatar: Avatar) => {
@@ -208,14 +256,21 @@ export function AvatarPairingPage({
           <div className="pairing-token" role="status">
             <span>{t('avatars.tokenLabel')}</span>
             <code>{challenge.pairingToken}</code>
-            <button
-              type="button"
-              onClick={() =>
-                navigator.clipboard?.writeText(challenge.pairingToken ?? '')
-              }
-            >
+            <button type="button" onClick={() => void copy()}>
               {t('avatars.copy')}
             </button>
+            {copyFeedback ? (
+              <p
+                aria-live={copyFeedback === 'failure' ? 'assertive' : 'polite'}
+                role={copyFeedback === 'failure' ? 'alert' : 'status'}
+              >
+                {t(
+                  copyFeedback === 'success'
+                    ? 'avatars.copySuccess'
+                    : 'avatars.copyFailed',
+                )}
+              </p>
+            ) : null}
             <p aria-live="off">
               {t('avatars.expires')}: {remaining}s
             </p>

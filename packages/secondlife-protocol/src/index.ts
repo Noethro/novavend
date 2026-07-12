@@ -21,7 +21,7 @@ export const RequestEnvelopeSchema = z.object({
 });
 
 export const AvatarPairingClaimPayloadSchema = z
-  .object({ pairingToken: z.string().min(20).max(256) })
+  .object({ pairingToken: z.string().regex(/^[A-Za-z0-9_-]{32}$/) })
   .strict();
 
 export const AvatarPairingClaimEnvelopeSchema = z

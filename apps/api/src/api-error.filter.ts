@@ -17,10 +17,23 @@ export class ApiErrorFilter implements ExceptionFilter {
     const context = host.switchToHttp();
     const request = context.getRequest<FastifyRequest>();
     const reply = context.getResponse<FastifyReply>();
-    const status =
-      exception instanceof HttpException
+    const exceptionStatus =
+      typeof exception === 'object' &&
+      exception !== null &&
+      'statusCode' in exception &&
+      typeof exception.statusCode === 'number'
+        ? exception.statusCode
+        : undefined;
+    const isClaimBodyTooLarge =
+      request.url.split('?')[0] === '/secondlife/v1/avatar-pairings/claim' &&
+      (exceptionStatus === HttpStatus.PAYLOAD_TOO_LARGE ||
+        (exception instanceof HttpException &&
+          exception.getStatus() === HttpStatus.PAYLOAD_TOO_LARGE));
+    const status = isClaimBodyTooLarge
+      ? HttpStatus.PAYLOAD_TOO_LARGE
+      : exception instanceof HttpException
         ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+        : (exceptionStatus ?? HttpStatus.INTERNAL_SERVER_ERROR);
     const response =
       exception instanceof HttpException ? exception.getResponse() : undefined;
     const body =
@@ -37,11 +50,13 @@ export class ApiErrorFilter implements ExceptionFilter {
         : undefined;
     const fallbackMessage =
       status === 500 ? 'Internal server error' : 'Request failed';
-    const message =
-      messages[0] ??
-      (typeof response === 'string' ? response : fallbackMessage);
-    const errorName =
-      'error' in body && typeof body.error === 'string'
+    const message = isClaimBodyTooLarge
+      ? 'Request is too large'
+      : (messages[0] ??
+        (typeof response === 'string' ? response : fallbackMessage));
+    const errorName = isClaimBodyTooLarge
+      ? 'PROTOCOL_BODY_TOO_LARGE'
+      : 'error' in body && typeof body.error === 'string'
         ? body.error
         : 'HTTP_ERROR';
 

@@ -145,11 +145,6 @@ export class SecondLifeAvatarPairingController {
         error: 'PROTOCOL_JSON_REQUIRED',
         message: 'JSON is required',
       });
-    if (Number(request.headers['content-length'] ?? 0) > 8192)
-      throw new BadRequestException({
-        error: 'PROTOCOL_BODY_TOO_LARGE',
-        message: 'Request is too large',
-      });
     try {
       const envelope = parseAvatarPairingClaim(
         request.body,

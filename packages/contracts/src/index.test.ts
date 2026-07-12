@@ -60,10 +60,10 @@ describe('avatar pairing contracts', () => {
       CreateAvatarPairingResponseSchema.parse({
         challengeId: '6eb8d76d-b723-4f9d-9ca6-97684a9a14ab',
         expiresAt: '2026-07-12T12:10:00.000Z',
-        pairingToken: 'copy_safe_pairing_token',
+        pairingToken: '0123456789abcdefghijklmnopqrstuv',
         status: 'pending',
       }).pairingToken,
-    ).toBe('copy_safe_pairing_token');
+    ).toBe('0123456789abcdefghijklmnopqrstuv');
     expect(
       AvatarPairingStatusResponseSchema.parse({
         challengeId: '6eb8d76d-b723-4f9d-9ca6-97684a9a14ab',

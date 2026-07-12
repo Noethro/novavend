@@ -69,7 +69,7 @@ describe.sequential('authentication and onboarding integration', () => {
   beforeAll(async () => {
     app = await NestFactory.create<NestFastifyApplication>(
       AppModule,
-      new FastifyAdapter(),
+      new FastifyAdapter({ bodyLimit: 8192 }),
       { logger: false },
     );
     configureApi(app, 'test', origin);
@@ -379,6 +379,43 @@ describe.sequential('authentication and onboarding integration', () => {
     expect(response.json().code).toBe('AUTH_ORIGIN_REJECTED');
   });
 
+  it.each([
+    `/workspaces/${randomUUID()}/avatar-pairings/${randomUUID()}`,
+    `/workspaces/${randomUUID()}/avatars/${randomUUID()}`,
+  ])(
+    'allows an exact-origin credentialed DELETE preflight for %s',
+    async (url) => {
+      const response = await app.inject({
+        headers: {
+          'access-control-request-method': 'DELETE',
+          origin,
+        },
+        method: 'OPTIONS',
+        url,
+      });
+      expect(response.statusCode).toBe(204);
+      expect(response.headers['access-control-allow-origin']).toBe(origin);
+      expect(response.headers['access-control-allow-credentials']).toBe('true');
+      expect(
+        String(response.headers['access-control-allow-methods'])
+          .split(',')
+          .map((method) => method.trim()),
+      ).toContain('DELETE');
+    },
+  );
+
+  it('does not authorize an unexpected origin during DELETE preflight', async () => {
+    const response = await app.inject({
+      headers: {
+        'access-control-request-method': 'DELETE',
+        origin: 'https://evil.example.com',
+      },
+      method: 'OPTIONS',
+      url: `/workspaces/${randomUUID()}/avatars/${randomUUID()}`,
+    });
+    expect(response.headers['access-control-allow-origin']).toBeUndefined();
+  });
+
   it('writes safe audit events without credentials or tokens', async () => {
     const registered = await register();
     await app.inject({
@@ -660,8 +697,65 @@ describe.sequential('authentication and onboarding integration', () => {
     ).toBe('PROTOCOL_DEVICE_MISMATCH');
   });
 
+  it('enforces the claim body limit on actual JSON bytes without trusting Content-Length', async () => {
+    const pairingToken = 'Z'.repeat(32);
+    const envelope = claimEnvelope(pairingToken);
+    const response = await app.inject({
+      headers: {
+        'content-type': 'application/json',
+        'x-secondlife-object-key': envelope.deviceId,
+        'x-secondlife-owner-key': randomUUID(),
+      },
+      method: 'POST',
+      payload: JSON.stringify({
+        ...envelope,
+        payload: { pairingToken, padding: 'x'.repeat(8192) },
+      }),
+      url: '/secondlife/v1/avatar-pairings/claim',
+    });
+    expect(response.statusCode).toBe(413);
+    expect(response.json().code).toBe('PROTOCOL_BODY_TOO_LARGE');
+    expect(response.body).not.toContain(pairingToken);
+    expect(response.body).not.toContain('padding');
+  });
+
+  it('rejects non-JSON claim requests with a stable safe response', async () => {
+    const response = await app.inject({
+      headers: {
+        'content-type': 'text/plain',
+        'x-secondlife-object-key': randomUUID(),
+        'x-secondlife-owner-key': randomUUID(),
+      },
+      method: 'POST',
+      payload: 'not-json',
+      url: '/secondlife/v1/avatar-pairings/claim',
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().code).toBe('PROTOCOL_JSON_REQUIRED');
+    expect(response.body).not.toContain('not-json');
+  });
+
+  it('keeps invalid pairing-token protocol failures generic', async () => {
+    const pairingToken = 'not-a-valid-token';
+    const envelope = claimEnvelope(pairingToken);
+    const response = await app.inject({
+      body: envelope,
+      headers: {
+        'content-type': 'application/json',
+        'x-secondlife-object-key': envelope.deviceId,
+        'x-secondlife-owner-key': randomUUID(),
+      },
+      method: 'POST',
+      url: '/secondlife/v1/avatar-pairings/claim',
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().code).toBe('PROTOCOL_INVALID');
+    expect(response.body).not.toContain(pairingToken);
+  });
+
   it('rate limits public claims with private bounded Redis keys and Retry-After', async () => {
-    const envelope = claimEnvelope('invalid_pairing_token_value');
+    const pairingToken = 'I'.repeat(32);
+    const envelope = claimEnvelope(pairingToken);
     const headers = {
       'content-type': 'application/json',
       'x-secondlife-object-key': envelope.deviceId,
@@ -696,7 +790,7 @@ describe.sequential('authentication and onboarding integration', () => {
     expect(limited.json().code).toBe('PAIRING_RATE_LIMITED');
     expect(Number(limited.headers['retry-after'])).toBeGreaterThan(0);
     const keys = await redis.keys('novavend:pairing:*');
-    expect(keys.join(' ')).not.toContain('invalid_pairing_token_value');
+    expect(keys.join(' ')).not.toContain(pairingToken);
     expect(
       (await Promise.all(keys.map((key) => redis.ttl(key)))).every(
         (ttl) => ttl > 0,
@@ -707,7 +801,7 @@ describe.sequential('authentication and onboarding integration', () => {
   it('fails closed when pairing rate-limit Redis is unavailable', async () => {
     const appRedis = app.get<Redis>(REDIS_RESOURCE);
     appRedis.disconnect();
-    const envelope = claimEnvelope('unavailable_pairing_token');
+    const envelope = claimEnvelope('U'.repeat(32));
     const response = await app.inject({
       body: envelope,
       headers: {

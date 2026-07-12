@@ -98,7 +98,7 @@ export const LinkedAvatarSummarySchema = z.object({
 export const CreateAvatarPairingResponseSchema = z.object({
   challengeId: z.uuid(),
   expiresAt: z.iso.datetime(),
-  pairingToken: z.string().min(20),
+  pairingToken: z.string().regex(/^[A-Za-z0-9_-]{32}$/),
   status: z.literal('pending'),
 });
 export const AvatarPairingStatusResponseSchema = z.object({
