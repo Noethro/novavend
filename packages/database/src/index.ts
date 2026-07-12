@@ -1,5 +1,14 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import { schema } from './schema';
+
+export * from './domain';
+export * from './schema';
+export * from './repositories/audit';
+export * from './repositories/avatars';
+export * from './repositories/idempotency';
+export * from './repositories/users';
+export * from './repositories/workspaces';
 
 export interface ConnectivityClient {
   end(options?: { timeout?: number }): Promise<void>;
@@ -20,7 +29,9 @@ export const createDatabase = (databaseUrl: string) => {
   const lifecycle = createConnectivityManager(client);
   return {
     client,
-    database: drizzle(client),
+    database: drizzle(client, { schema }),
     ...lifecycle,
   };
 };
+
+export type NovaVendDatabase = ReturnType<typeof createDatabase>['database'];

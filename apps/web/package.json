@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "start": "next start",
     "test": "vitest run",
+    "test:static-export": "node scripts/verify-static-export.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
