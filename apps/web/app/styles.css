@@ -654,3 +654,13 @@ a {
   color: #fca5a5;
   font-size: 0.78rem;
 }
+
+.logout-button {
+  float: right;
+  margin: 0 0 1rem 1rem;
+}
+
+.session-loading {
+  padding: 2rem;
+  text-align: center;
+}

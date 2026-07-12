@@ -8,6 +8,7 @@ import {
   Post,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { loadApiConfig } from '@novavend/config';
 import {
@@ -18,6 +19,8 @@ import {
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { ZodType } from 'zod';
 import { AuthService } from './auth.service';
+import { AuthIdentity, AuthenticationGuard } from './auth.guard';
+import type { AuthenticatedRequest } from './auth.service';
 import {
   expiredSessionCookie,
   isAllowedMutationOrigin,
@@ -105,8 +108,9 @@ export class AuthController {
   }
 
   @Get('session')
-  session(@Req() request: FastifyRequest) {
-    return this.auth.currentSession(request);
+  @UseGuards(AuthenticationGuard)
+  session(@AuthIdentity() identity: AuthenticatedRequest) {
+    return this.auth.currentSession(identity);
   }
 }
 
@@ -115,10 +119,16 @@ export class OnboardingController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('workspace')
-  async workspace(@Body() body: unknown, @Req() request: FastifyRequest) {
+  @UseGuards(AuthenticationGuard)
+  async workspace(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @AuthIdentity() identity: AuthenticatedRequest,
+  ) {
     assertOrigin(request);
     return this.auth.onboard(
-      request,
+      identity,
+      request.id,
       parse(OnboardingWorkspaceRequestSchema, body),
     );
   }

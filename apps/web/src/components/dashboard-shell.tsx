@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
+import { SessionGate } from '../auth/session-gate';
 import { useLocale } from '../i18n/locale-provider';
 import { navigationItems } from '../i18n/navigation';
 import { LanguageSelector } from './language-selector';
@@ -59,13 +60,20 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       pathname.endsWith(route),
     )
   ) {
+    const onboarding = pathname.endsWith('/onboarding');
     return (
       <div className="auth-shell" data-locale-ready={ready}>
         <header>
           <strong>NovaVend</strong>
           <LanguageSelector />
         </header>
-        <main>{children}</main>
+        <main>
+          {onboarding ? (
+            <SessionGate onboarding>{children}</SessionGate>
+          ) : (
+            children
+          )}
+        </main>
       </div>
     );
   }
@@ -117,7 +125,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         ) : null}
 
         <main id="main-content" tabIndex={-1}>
-          {children}
+          <SessionGate>{children}</SessionGate>
         </main>
       </div>
     </div>

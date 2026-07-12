@@ -26,9 +26,21 @@ export class AuthRateLimiter {
 
   async consume(key: string, limit: number): Promise<RateLimitDecision> {
     if (this.redis.status === 'wait') await this.redis.connect();
-    const count = await this.redis.incr(key);
-    if (count === 1) await this.redis.expire(key, this.windowSeconds);
-    const ttl = Math.max(await this.redis.ttl(key), 1);
+    const [rawCount, rawTtl] = (await this.redis.eval(
+      `local count = redis.call('INCR', KEYS[1])
+if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+local ttl = redis.call('TTL', KEYS[1])
+if ttl < 0 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+  ttl = tonumber(ARGV[1])
+end
+return {count, ttl}`,
+      1,
+      key,
+      this.windowSeconds,
+    )) as [number, number];
+    const count = Number(rawCount);
+    const ttl = Math.max(Number(rawTtl), 1);
     return { allowed: count <= limit, retryAfter: ttl };
   }
 }

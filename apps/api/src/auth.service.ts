@@ -129,9 +129,10 @@ export class AuthService {
     return { tokenHash, user: resolved.user };
   }
 
-  async currentSession(request: FastifyRequest): Promise<AuthSessionResponse> {
-    const auth = await this.authenticate(request);
-    return this.projectSession(auth.user);
+  async currentSession(
+    identity: AuthenticatedRequest,
+  ): Promise<AuthSessionResponse> {
+    return this.projectSession(identity.user);
   }
 
   async logout(request: FastifyRequest): Promise<void> {
@@ -153,15 +154,15 @@ export class AuthService {
   }
 
   async onboard(
-    request: FastifyRequest,
+    identity: AuthenticatedRequest,
+    correlationId: string,
     input: { name: string; slug?: string },
   ) {
-    const auth = await this.authenticate(request);
     const result = await this.repository.onboardFirstWorkspace({
-      correlationId: request.id,
+      correlationId,
       name: input.name,
       slug: input.slug ?? input.name,
-      userId: auth.user.id,
+      userId: identity.user.id,
     });
     if (!result.ok) {
       const status = result.reason === 'already_onboarded' ? 409 : 400;

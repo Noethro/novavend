@@ -340,9 +340,10 @@ describe.sequential('authentication and onboarding integration', () => {
     expect(limited.statusCode).toBe(429);
     expect(limited.json().code).toBe('AUTH_RATE_LIMITED');
     expect(Number(limited.headers['retry-after'])).toBeGreaterThan(0);
-    expect((await redis.keys('novavend:auth:*')).join(' ')).not.toContain(
-      'example.com',
-    );
+    const keys = await redis.keys('novavend:auth:*');
+    expect(keys.join(' ')).not.toContain('example.com');
+    const ttls = await Promise.all(keys.map((key) => redis.ttl(key)));
+    expect(ttls.every((ttl) => ttl > 0)).toBe(true);
   });
 
   it('rejects unexpected origins for credentialed mutations', async () => {

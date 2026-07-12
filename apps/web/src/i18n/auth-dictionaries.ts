@@ -27,6 +27,8 @@ export const authEnglishDictionary = {
   'auth.loading': 'Please wait…',
   'auth.unavailable': 'Account actions are unavailable in preview mode.',
   'auth.requestFailed': 'The request could not be completed safely.',
+  'auth.logout': 'Sign out',
+  'auth.sessionLoading': 'Checking your session…',
 } as const;
 
 export type AuthTranslationKey = keyof typeof authEnglishDictionary;
@@ -61,6 +63,8 @@ export const authDictionaries: Record<Locale, AuthDictionary> = {
     'auth.loading': 'Lütfen bekleyin…',
     'auth.unavailable': 'Önizleme modunda hesap işlemleri kullanılamaz.',
     'auth.requestFailed': 'İstek güvenli biçimde tamamlanamadı.',
+    'auth.logout': 'Çıkış yap',
+    'auth.sessionLoading': 'Oturumunuz denetleniyor…',
   },
   de: {
     'auth.previewNotice':
@@ -91,6 +95,8 @@ export const authDictionaries: Record<Locale, AuthDictionary> = {
       'Kontofunktionen sind im Vorschaumodus nicht verfügbar.',
     'auth.requestFailed':
       'Die Anfrage konnte nicht sicher abgeschlossen werden.',
+    'auth.logout': 'Abmelden',
+    'auth.sessionLoading': 'Sitzung wird geprüft…',
   },
   ru: {
     'auth.previewNotice':
@@ -119,6 +125,8 @@ export const authDictionaries: Record<Locale, AuthDictionary> = {
     'auth.loading': 'Подождите…',
     'auth.unavailable': 'Действия с аккаунтом недоступны в режиме просмотра.',
     'auth.requestFailed': 'Не удалось безопасно выполнить запрос.',
+    'auth.logout': 'Выйти',
+    'auth.sessionLoading': 'Проверяем сеанс…',
   },
   'zh-CN': {
     'auth.previewNotice':
@@ -145,6 +153,8 @@ export const authDictionaries: Record<Locale, AuthDictionary> = {
     'auth.loading': '请稍候…',
     'auth.unavailable': '预览模式下无法使用账户操作。',
     'auth.requestFailed': '无法安全完成请求。',
+    'auth.logout': '退出登录',
+    'auth.sessionLoading': '正在检查会话…',
   },
   ja: {
     'auth.previewNotice':
@@ -173,5 +183,7 @@ export const authDictionaries: Record<Locale, AuthDictionary> = {
     'auth.loading': 'お待ちください…',
     'auth.unavailable': 'プレビューモードではアカウント操作を利用できません。',
     'auth.requestFailed': 'リクエストを安全に完了できませんでした。',
+    'auth.logout': 'ログアウト',
+    'auth.sessionLoading': 'セッションを確認しています…',
   },
 };

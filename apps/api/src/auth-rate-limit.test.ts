@@ -4,9 +4,10 @@ import { AuthRateLimiter } from './auth-rate-limit';
 describe('Redis authentication throttling', () => {
   it('uses bounded counters and returns retry timing', async () => {
     const redis = {
-      expire: vi.fn().mockResolvedValue(1),
-      incr: vi.fn().mockResolvedValueOnce(1).mockResolvedValueOnce(3),
-      ttl: vi.fn().mockResolvedValue(120),
+      eval: vi
+        .fn()
+        .mockResolvedValueOnce([1, 120])
+        .mockResolvedValueOnce([3, 120]),
     };
     const limiter = new AuthRateLimiter(redis as never, 900);
     await expect(limiter.consume('safe-key', 2)).resolves.toEqual({
@@ -17,7 +18,9 @@ describe('Redis authentication throttling', () => {
       allowed: false,
       retryAfter: 120,
     });
-    expect(redis.expire).toHaveBeenCalledWith('safe-key', 900);
+    expect(redis.eval).toHaveBeenCalledTimes(2);
+    expect(redis.eval.mock.calls[0]?.slice(1)).toEqual([1, 'safe-key', 900]);
+    expect(redis.eval.mock.calls[0]?.[0]).toContain("redis.call('EXPIRE'");
   });
 
   it('never places raw email or IP values in Redis keys', () => {

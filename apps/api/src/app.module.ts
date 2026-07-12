@@ -5,6 +5,7 @@ import Redis from 'ioredis';
 import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AuthController, OnboardingController } from './auth.controller';
+import { AuthenticationGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import {
   HealthService,
@@ -37,6 +38,7 @@ const config = loadApiConfig(process.env);
   controllers: [AppController, AuthController, OnboardingController],
   providers: [
     AuthService,
+    AuthenticationGuard,
     HealthService,
     InfrastructureService,
     {
