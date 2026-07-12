@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AvatarPairingStatusResponseSchema,
+  CreateAvatarPairingResponseSchema,
   ApiErrorResponseSchema,
   HealthResponseSchema,
   LoginRequestSchema,
@@ -49,6 +51,26 @@ describe('authentication contracts', () => {
     expect(
       LoginRequestSchema.safeParse({ email: 'bad', password: 'short' }).success,
     ).toBe(false);
+  });
+});
+
+describe('avatar pairing contracts', () => {
+  it('returns the raw token only in the create response', () => {
+    expect(
+      CreateAvatarPairingResponseSchema.parse({
+        challengeId: '6eb8d76d-b723-4f9d-9ca6-97684a9a14ab',
+        expiresAt: '2026-07-12T12:10:00.000Z',
+        pairingToken: '0123456789abcdefghijklmnopqrstuv',
+        status: 'pending',
+      }).pairingToken,
+    ).toBe('0123456789abcdefghijklmnopqrstuv');
+    expect(
+      AvatarPairingStatusResponseSchema.parse({
+        challengeId: '6eb8d76d-b723-4f9d-9ca6-97684a9a14ab',
+        expiresAt: '2026-07-12T12:10:00.000Z',
+        status: 'pending',
+      }),
+    ).not.toHaveProperty('pairingToken');
   });
 });
 

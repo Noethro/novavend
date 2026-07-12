@@ -13,7 +13,7 @@ async function bootstrap(): Promise<void> {
   const config = loadApiConfig(process.env);
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter(),
+    new FastifyAdapter({ bodyLimit: 8192 }),
     { bufferLogs: true },
   );
   app.useLogger(app.get(Logger));

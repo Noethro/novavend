@@ -38,6 +38,11 @@ origin with `API_ALLOWED_WEB_ORIGIN`. Sessions are opaque HttpOnly cookies; no a
 browser storage. PostgreSQL stores only token hashes and Argon2id password hashes. Redis rate limits
 registration and login and fails closed when unavailable.
 
+TASK-005 adds authenticated workspace avatar management and the public versioned Second Life claim
+endpoint. Configure `lsl/novavend-avatar-linker.lsl` with the HTTPS URL of a hosted API and place it
+in an object owned by the avatar. GitHub Pages cannot complete a real link because it hosts no API,
+PostgreSQL, or Redis.
+
 ## Quality commands
 
 ```bash
@@ -76,7 +81,7 @@ Language selection is stored in the browser and applies to both the overview and
 Localization architecture and contribution rules are documented in
 [the internationalization guide](docs/INTERNATIONALIZATION.md).
 
-The Pages preview also exports `/login/`, `/register/`, and `/onboarding/` in all six languages. These
+The Pages preview also exports `/login/`, `/register/`, `/onboarding/`, and `/avatars/` in all six languages. These
 forms are intentionally disabled because Pages does not host the API, PostgreSQL, or Redis and never
 simulates a successful account action.
 

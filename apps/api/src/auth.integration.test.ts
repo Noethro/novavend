@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { randomUUID } from 'node:crypto';
 import { NestFactory } from '@nestjs/core';
 import {
   FastifyAdapter,
@@ -6,9 +7,11 @@ import {
 } from '@nestjs/platform-fastify';
 import { AuthenticationRepository, createDatabase } from '@novavend/database';
 import Redis from 'ioredis';
+import { DeviceType, PROTOCOL_VERSION } from '@novavend/secondlife-protocol';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AppModule } from './app.module';
 import { configureApi } from './configure-api';
+import { REDIS_RESOURCE } from './infrastructure.service';
 
 const origin = 'http://localhost:3000';
 const database = createDatabase(
@@ -38,11 +41,35 @@ const register = async (body = registration, requestOrigin = origin) =>
 const cookieFrom = (response: { headers: Record<string, unknown> }) =>
   String(response.headers['set-cookie']).split(';')[0] ?? '';
 
+const onboard = async (
+  registered: Awaited<ReturnType<typeof register>>,
+  name = 'Nova Shop',
+) =>
+  app.inject({
+    body: { name },
+    headers: { cookie: cookieFrom(registered), origin },
+    method: 'POST',
+    url: '/onboarding/workspace',
+  });
+
+const claimEnvelope = (
+  pairingToken: string,
+  deviceId = randomUUID(),
+  messageId = randomUUID(),
+) => ({
+  deviceId,
+  deviceType: DeviceType.AvatarLink,
+  messageId,
+  payload: { pairingToken },
+  sentAt: new Date().toISOString(),
+  version: PROTOCOL_VERSION,
+});
+
 describe.sequential('authentication and onboarding integration', () => {
   beforeAll(async () => {
     app = await NestFactory.create<NestFastifyApplication>(
       AppModule,
-      new FastifyAdapter(),
+      new FastifyAdapter({ bodyLimit: 8192 }),
       { logger: false },
     );
     configureApi(app, 'test', origin);
@@ -352,6 +379,47 @@ describe.sequential('authentication and onboarding integration', () => {
     expect(response.json().code).toBe('AUTH_ORIGIN_REJECTED');
   });
 
+  it.each([
+    `/workspaces/${randomUUID()}/avatar-pairings/${randomUUID()}`,
+    `/workspaces/${randomUUID()}/avatars/${randomUUID()}`,
+  ])(
+    'allows an exact-origin credentialed DELETE preflight for %s',
+    async (url) => {
+      const response = await app.inject({
+        headers: {
+          'access-control-request-method': 'DELETE',
+          origin,
+        },
+        method: 'OPTIONS',
+        url,
+      });
+      expect(response.statusCode).toBe(204);
+      expect(response.headers['access-control-allow-origin']).toBe(origin);
+      expect(response.headers['access-control-allow-credentials']).toBe('true');
+      expect(
+        String(response.headers['access-control-allow-methods'])
+          .split(',')
+          .map((method) => method.trim()),
+      ).toContain('DELETE');
+    },
+  );
+
+  it('does not authorize an unexpected origin during DELETE preflight', async () => {
+    const unexpectedOrigin = 'https://evil.example.com';
+    const response = await app.inject({
+      headers: {
+        'access-control-request-method': 'DELETE',
+        origin: unexpectedOrigin,
+      },
+      method: 'OPTIONS',
+      url: `/workspaces/${randomUUID()}/avatars/${randomUUID()}`,
+    });
+    expect(response.headers['access-control-allow-origin']).toBe(origin);
+    expect(response.headers['access-control-allow-origin']).not.toBe(
+      unexpectedOrigin,
+    );
+  });
+
   it('writes safe audit events without credentials or tokens', async () => {
     const registered = await register();
     await app.inject({
@@ -374,5 +442,381 @@ describe.sequential('authentication and onboarding integration', () => {
       "update user_sessions set expires_at=now()-interval '1 second'",
     );
     await expect(repository.deleteExpiredOrRevokedSessions()).resolves.toBe(1);
+  });
+
+  it('creates a hash-only workspace pairing challenge and never returns the token again', async () => {
+    const registered = await register();
+    const onboarding = await onboard(registered);
+    const workspaceId = onboarding.json().workspace.id as string;
+    const created = await app.inject({
+      headers: { cookie: cookieFrom(registered), origin },
+      method: 'POST',
+      url: `/workspaces/${workspaceId}/avatar-pairings`,
+    });
+    expect(created.statusCode).toBe(201);
+    const body = created.json();
+    expect(body.pairingToken).toMatch(/^[A-Za-z0-9_-]{32}$/);
+    const [stored] = await database.client.unsafe<
+      Array<{ token_hash: string }>
+    >('select token_hash from avatar_pairing_challenges');
+    expect(stored?.token_hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(stored?.token_hash).not.toContain(body.pairingToken);
+    const status = await app.inject({
+      headers: { cookie: cookieFrom(registered) },
+      method: 'GET',
+      url: `/workspaces/${workspaceId}/avatar-pairings/${body.challengeId}`,
+    });
+    expect(status.statusCode).toBe(200);
+    expect(status.json()).not.toHaveProperty('pairingToken');
+    expect(status.json()).not.toHaveProperty('tokenHash');
+    expect(
+      (
+        await app.inject({
+          headers: { cookie: cookieFrom(registered), origin },
+          method: 'POST',
+          url: `/workspaces/${workspaceId}/avatar-pairings`,
+        })
+      ).statusCode,
+    ).toBe(201);
+    expect(
+      (
+        await app.inject({
+          headers: { cookie: cookieFrom(registered), origin },
+          method: 'POST',
+          url: `/workspaces/${workspaceId}/avatar-pairings`,
+        })
+      ).statusCode,
+    ).toBe(201);
+    const limited = await app.inject({
+      headers: { cookie: cookieFrom(registered), origin },
+      method: 'POST',
+      url: `/workspaces/${workspaceId}/avatar-pairings`,
+    });
+    expect(limited.statusCode).toBe(409);
+    expect(limited.json().code).toBe('PAIRING_PENDING_LIMIT');
+  });
+
+  it('atomically claims, replays, lists, revokes, and reactivates an avatar link', async () => {
+    const registered = await register();
+    const onboarding = await onboard(registered);
+    const workspaceId = onboarding.json().workspace.id as string;
+    const created = await app.inject({
+      headers: { cookie: cookieFrom(registered), origin },
+      method: 'POST',
+      url: `/workspaces/${workspaceId}/avatar-pairings`,
+    });
+    const envelope = claimEnvelope(created.json().pairingToken);
+    const simulatorHeaders = {
+      'content-type': 'application/json',
+      'x-secondlife-object-key': envelope.deviceId,
+      'x-secondlife-owner-key': '9e1635f4-e428-44f0-8405-93a021740bda',
+      'x-secondlife-owner-name': 'Nova Resident',
+    };
+    const [first, replay] = await Promise.all(
+      [0, 1].map(() =>
+        app.inject({
+          body: envelope,
+          headers: simulatorHeaders,
+          method: 'POST',
+          url: '/secondlife/v1/avatar-pairings/claim',
+        }),
+      ),
+    );
+    expect([first!.json().code, replay!.json().code].sort()).toEqual([
+      'LINKED',
+      'REPLAYED',
+    ]);
+    const crossAvatar = await app.inject({
+      body: envelope,
+      headers: { ...simulatorHeaders, 'x-secondlife-owner-key': randomUUID() },
+      method: 'POST',
+      url: '/secondlife/v1/avatar-pairings/claim',
+    });
+    expect(crossAvatar.statusCode).toBe(409);
+    expect(crossAvatar.json().code).toBe('PAIRING_CONSUMED');
+    const listed = await app.inject({
+      headers: { cookie: cookieFrom(registered) },
+      method: 'GET',
+      url: `/workspaces/${workspaceId}/avatars`,
+    });
+    expect(listed.json().avatars).toHaveLength(1);
+    const avatarId = listed.json().avatars[0].id as string;
+    expect(
+      (
+        await app.inject({
+          headers: { cookie: cookieFrom(registered), origin },
+          method: 'DELETE',
+          url: `/workspaces/${workspaceId}/avatars/${avatarId}`,
+        })
+      ).statusCode,
+    ).toBe(204);
+    expect(
+      (
+        await database.client.unsafe<Array<{ count: number }>>(
+          'select count(*)::int count from avatar_accounts',
+        )
+      )[0]?.count,
+    ).toBe(1);
+    const next = await app.inject({
+      headers: { cookie: cookieFrom(registered), origin },
+      method: 'POST',
+      url: `/workspaces/${workspaceId}/avatar-pairings`,
+    });
+    const nextEnvelope = claimEnvelope(next.json().pairingToken);
+    const relink = await app.inject({
+      body: nextEnvelope,
+      headers: {
+        ...simulatorHeaders,
+        'x-secondlife-object-key': nextEnvelope.deviceId,
+      },
+      method: 'POST',
+      url: '/secondlife/v1/avatar-pairings/claim',
+    });
+    expect(relink.json().code).toBe('REACTIVATED');
+    const audits = await database.client.unsafe<Array<{ metadata: unknown }>>(
+      "select metadata from audit_logs where action like 'avatar_%'",
+    );
+    expect(JSON.stringify(audits)).not.toContain(created.json().pairingToken);
+    expect(JSON.stringify(audits)).not.toContain(next.json().pairingToken);
+  });
+
+  it('enforces role authorization and workspace isolation', async () => {
+    const owner = await register();
+    const onboarding = await onboard(owner);
+    const workspaceId = onboarding.json().workspace.id as string;
+    const second = await register({
+      ...registration,
+      email: 'support@example.com',
+    });
+    const [user] = await database.client.unsafe<Array<{ id: string }>>(
+      "select id from users where email_normalized='support@example.com'",
+    );
+    if (!user) {
+      throw new Error('Expected registered support user');
+    }
+    await database.client.unsafe(
+      "insert into workspace_members(workspace_id,user_id,role,status,joined_at) values ($1,$2,'support','active',now())",
+      [workspaceId, user.id],
+    );
+    const denied = await app.inject({
+      headers: { cookie: cookieFrom(second), origin },
+      method: 'POST',
+      url: `/workspaces/${workspaceId}/avatar-pairings`,
+    });
+    expect(denied.statusCode).toBe(403);
+    await database.client.unsafe(
+      "update workspace_members set role='manager' where user_id=$1",
+      [user.id],
+    );
+    expect(
+      (
+        await app.inject({
+          headers: { cookie: cookieFrom(second), origin },
+          method: 'POST',
+          url: `/workspaces/${workspaceId}/avatar-pairings`,
+        })
+      ).statusCode,
+    ).toBe(201);
+    expect(
+      (
+        await app.inject({
+          headers: { cookie: cookieFrom(second) },
+          method: 'GET',
+          url: `/workspaces/${randomUUID()}/avatars`,
+        })
+      ).statusCode,
+    ).toBe(403);
+  });
+
+  it('rejects cancelled, expired, malformed, mismatched, and cross-avatar claims', async () => {
+    const registered = await register();
+    const onboarding = await onboard(registered);
+    const workspaceId = onboarding.json().workspace.id as string;
+    const make = () =>
+      app.inject({
+        headers: { cookie: cookieFrom(registered), origin },
+        method: 'POST',
+        url: `/workspaces/${workspaceId}/avatar-pairings`,
+      });
+    const cancelled = await make();
+    await app.inject({
+      headers: { cookie: cookieFrom(registered), origin },
+      method: 'DELETE',
+      url: `/workspaces/${workspaceId}/avatar-pairings/${cancelled.json().challengeId}`,
+    });
+    const cancelledEnvelope = claimEnvelope(cancelled.json().pairingToken);
+    const headers = {
+      'content-type': 'application/json',
+      'x-secondlife-object-key': cancelledEnvelope.deviceId,
+      'x-secondlife-owner-key': randomUUID(),
+    };
+    expect(
+      (
+        await app.inject({
+          body: cancelledEnvelope,
+          headers,
+          method: 'POST',
+          url: '/secondlife/v1/avatar-pairings/claim',
+        })
+      ).statusCode,
+    ).toBe(410);
+    const expired = await make();
+    await database.client.unsafe(
+      "update avatar_pairing_challenges set expires_at=now()-interval '1 second' where id=$1",
+      [expired.json().challengeId],
+    );
+    const expiredEnvelope = claimEnvelope(expired.json().pairingToken);
+    expect(
+      (
+        await app.inject({
+          body: expiredEnvelope,
+          headers: {
+            ...headers,
+            'x-secondlife-object-key': expiredEnvelope.deviceId,
+          },
+          method: 'POST',
+          url: '/secondlife/v1/avatar-pairings/claim',
+        })
+      ).statusCode,
+    ).toBe(410);
+    expect(
+      (
+        await app.inject({
+          body: expiredEnvelope,
+          headers: { 'content-type': 'application/json' },
+          method: 'POST',
+          url: '/secondlife/v1/avatar-pairings/claim',
+        })
+      ).statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await app.inject({
+          body: expiredEnvelope,
+          headers: { ...headers, 'x-secondlife-object-key': randomUUID() },
+          method: 'POST',
+          url: '/secondlife/v1/avatar-pairings/claim',
+        })
+      ).json().code,
+    ).toBe('PROTOCOL_DEVICE_MISMATCH');
+  });
+
+  it('enforces the claim body limit on actual JSON bytes without trusting Content-Length', async () => {
+    const pairingToken = 'Z'.repeat(32);
+    const envelope = claimEnvelope(pairingToken);
+    const response = await app.inject({
+      headers: {
+        'content-type': 'application/json',
+        'x-secondlife-object-key': envelope.deviceId,
+        'x-secondlife-owner-key': randomUUID(),
+      },
+      method: 'POST',
+      payload: JSON.stringify({
+        ...envelope,
+        payload: { pairingToken, padding: 'x'.repeat(8192) },
+      }),
+      url: '/secondlife/v1/avatar-pairings/claim',
+    });
+    expect(response.statusCode).toBe(413);
+    expect(response.json().code).toBe('PROTOCOL_BODY_TOO_LARGE');
+    expect(response.body).not.toContain(pairingToken);
+    expect(response.body).not.toContain('padding');
+  });
+
+  it('rejects non-JSON claim requests with a stable safe response', async () => {
+    const response = await app.inject({
+      headers: {
+        'content-type': 'text/plain',
+        'x-secondlife-object-key': randomUUID(),
+        'x-secondlife-owner-key': randomUUID(),
+      },
+      method: 'POST',
+      payload: 'not-json',
+      url: '/secondlife/v1/avatar-pairings/claim',
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().code).toBe('PROTOCOL_JSON_REQUIRED');
+    expect(response.body).not.toContain('not-json');
+  });
+
+  it('keeps invalid pairing-token protocol failures generic', async () => {
+    const pairingToken = 'not-a-valid-token';
+    const envelope = claimEnvelope(pairingToken);
+    const response = await app.inject({
+      body: envelope,
+      headers: {
+        'content-type': 'application/json',
+        'x-secondlife-object-key': envelope.deviceId,
+        'x-secondlife-owner-key': randomUUID(),
+      },
+      method: 'POST',
+      url: '/secondlife/v1/avatar-pairings/claim',
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().code).toBe('PROTOCOL_INVALID');
+    expect(response.body).not.toContain(pairingToken);
+  });
+
+  it('rate limits public claims with private bounded Redis keys and Retry-After', async () => {
+    const pairingToken = 'I'.repeat(32);
+    const envelope = claimEnvelope(pairingToken);
+    const headers = {
+      'content-type': 'application/json',
+      'x-secondlife-object-key': envelope.deviceId,
+      'x-secondlife-owner-key': randomUUID(),
+    };
+    for (let attempt = 0; attempt < 10; attempt += 1)
+      expect(
+        (
+          await app.inject({
+            body: {
+              ...envelope,
+              messageId: randomUUID(),
+              sentAt: new Date().toISOString(),
+            },
+            headers,
+            method: 'POST',
+            url: '/secondlife/v1/avatar-pairings/claim',
+          })
+        ).statusCode,
+      ).toBe(404);
+    const limited = await app.inject({
+      body: {
+        ...envelope,
+        messageId: randomUUID(),
+        sentAt: new Date().toISOString(),
+      },
+      headers,
+      method: 'POST',
+      url: '/secondlife/v1/avatar-pairings/claim',
+    });
+    expect(limited.statusCode).toBe(429);
+    expect(limited.json().code).toBe('PAIRING_RATE_LIMITED');
+    expect(Number(limited.headers['retry-after'])).toBeGreaterThan(0);
+    const keys = await redis.keys('novavend:pairing:*');
+    expect(keys.join(' ')).not.toContain(pairingToken);
+    expect(
+      (await Promise.all(keys.map((key) => redis.ttl(key)))).every(
+        (ttl) => ttl > 0,
+      ),
+    ).toBe(true);
+  });
+
+  it('fails closed when pairing rate-limit Redis is unavailable', async () => {
+    const appRedis = app.get<Redis>(REDIS_RESOURCE);
+    appRedis.disconnect();
+    const envelope = claimEnvelope('U'.repeat(32));
+    const response = await app.inject({
+      body: envelope,
+      headers: {
+        'content-type': 'application/json',
+        'x-secondlife-object-key': envelope.deviceId,
+        'x-secondlife-owner-key': randomUUID(),
+      },
+      method: 'POST',
+      url: '/secondlife/v1/avatar-pairings/claim',
+    });
+    expect(response.statusCode).toBe(503);
+    expect(response.json().code).toBe('PAIRING_RATE_LIMIT_UNAVAILABLE');
   });
 });

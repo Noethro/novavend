@@ -179,6 +179,24 @@ export class AuthenticationRepository {
       );
   }
 
+  async findActiveMembership(userId: string, workspaceId: string) {
+    const [membership] = await this.database
+      .select({ role: workspaceMembers.role, status: workspaceMembers.status })
+      .from(workspaceMembers)
+      .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
+      .where(
+        and(
+          eq(workspaceMembers.userId, userId),
+          eq(workspaceMembers.workspaceId, workspaceId),
+          eq(workspaceMembers.status, 'active'),
+          eq(workspaces.status, 'active'),
+          isNull(workspaces.deletedAt),
+        ),
+      )
+      .limit(1);
+    return membership;
+  }
+
   async onboardFirstWorkspace(input: {
     correlationId?: string;
     name: string;

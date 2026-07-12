@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assertSimulatorDevice,
+  AvatarPairingClaimEnvelopeSchema,
   DeviceType,
   DeviceTypeSchema,
   PROTOCOL_VERSION,
   RequestEnvelopeSchema,
+  type AvatarPairingClaimEnvelope,
+  parseAvatarPairingClaim,
+  parseSimulatorHeaders,
 } from './index';
 
 const envelope = {
@@ -45,5 +50,65 @@ describe('device types', () => {
 
   it('rejects unknown device types', () => {
     expect(DeviceTypeSchema.safeParse('rental_box').success).toBe(false);
+  });
+});
+
+const claim: AvatarPairingClaimEnvelope = {
+  ...envelope,
+  deviceType: DeviceType.AvatarLink,
+  payload: { pairingToken: '0123456789abcdefghijklmnopqrstuv' },
+};
+
+describe('avatar pairing protocol', () => {
+  it('accepts only an exact 32-character base64url pairing token', () => {
+    expect(AvatarPairingClaimEnvelopeSchema.safeParse(claim).success).toBe(
+      true,
+    );
+    for (const pairingToken of [
+      'A'.repeat(31),
+      'A'.repeat(33),
+      `${'A'.repeat(31)}=`,
+      `${'A'.repeat(31)} `,
+      `${'A'.repeat(31)}+`,
+    ]) {
+      expect(
+        AvatarPairingClaimEnvelopeSchema.safeParse({
+          ...claim,
+          payload: { pairingToken },
+        }).success,
+      ).toBe(false);
+    }
+  });
+
+  it('accepts a strict, timely claim and matching simulator identity', () => {
+    const parsed = parseAvatarPairingClaim(
+      claim,
+      new Date('2026-07-12T12:01:00.000Z'),
+    );
+    const identity = parseSimulatorHeaders({
+      'x-secondlife-object-key': claim.deviceId,
+      'x-secondlife-owner-key': '9e1635f4-e428-44f0-8405-93a021740bda',
+      'x-secondlife-owner-name': 'Nova Resident',
+    });
+    expect(() => assertSimulatorDevice(identity, parsed)).not.toThrow();
+    expect(identity.avatarUuid).toBe('9e1635f4-e428-44f0-8405-93a021740bda');
+  });
+
+  it('rejects unknown fields, stale messages, malformed headers, and mismatches', () => {
+    expect(
+      AvatarPairingClaimEnvelopeSchema.safeParse({ ...claim, extra: true })
+        .success,
+    ).toBe(false);
+    expect(() =>
+      parseAvatarPairingClaim(claim, new Date('2026-07-12T13:00:00.000Z')),
+    ).toThrow('PROTOCOL_CLOCK_SKEW');
+    expect(() => parseSimulatorHeaders({})).toThrow();
+    const identity = parseSimulatorHeaders({
+      'x-secondlife-object-key': '53fe3c16-43a2-43f7-8f9c-6f9f34ff1826',
+      'x-secondlife-owner-key': '9e1635f4-e428-44f0-8405-93a021740bda',
+    });
+    expect(() => assertSimulatorDevice(identity, claim)).toThrow(
+      'PROTOCOL_DEVICE_MISMATCH',
+    );
   });
 });

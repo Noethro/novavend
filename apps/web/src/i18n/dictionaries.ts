@@ -4,6 +4,11 @@ import {
   type AuthDictionary,
   type AuthTranslationKey,
 } from './auth-dictionaries';
+import {
+  avatarDictionaries,
+  type AvatarDictionary,
+  type AvatarTranslationKey,
+} from './avatar-dictionaries';
 
 export const englishDictionary = {
   skipToContent: 'Skip to main content',
@@ -351,16 +356,25 @@ const ja: Dictionary = {
   'status.unhostedDetail': '今後のマネージド環境で提供予定です。',
 };
 
-export type TranslationKey = BaseTranslationKey | AuthTranslationKey;
-type CompleteDictionary = Dictionary & AuthDictionary;
+export type TranslationKey =
+  BaseTranslationKey | AuthTranslationKey | AvatarTranslationKey;
+type CompleteDictionary = Dictionary & AuthDictionary & AvatarDictionary;
 
 export const dictionaries: Record<Locale, CompleteDictionary> = {
-  en: { ...englishDictionary, ...authDictionaries.en },
-  tr: { ...tr, ...authDictionaries.tr },
-  de: { ...de, ...authDictionaries.de },
-  ru: { ...ru, ...authDictionaries.ru },
-  'zh-CN': { ...zhCN, ...authDictionaries['zh-CN'] },
-  ja: { ...ja, ...authDictionaries.ja },
+  en: {
+    ...englishDictionary,
+    ...authDictionaries.en,
+    ...avatarDictionaries.en,
+  },
+  tr: { ...tr, ...authDictionaries.tr, ...avatarDictionaries.tr },
+  de: { ...de, ...authDictionaries.de, ...avatarDictionaries.de },
+  ru: { ...ru, ...authDictionaries.ru, ...avatarDictionaries.ru },
+  'zh-CN': {
+    ...zhCN,
+    ...authDictionaries['zh-CN'],
+    ...avatarDictionaries['zh-CN'],
+  },
+  ja: { ...ja, ...authDictionaries.ja, ...avatarDictionaries.ja },
 };
 
 export const translate = (

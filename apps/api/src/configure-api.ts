@@ -11,7 +11,7 @@ export const configureApi = (
 ): void => {
   app.enableCors({
     credentials: true,
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
     origin: allowedWebOrigin,
   });
   app.useGlobalPipes(

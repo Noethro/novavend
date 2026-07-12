@@ -53,6 +53,22 @@ const ApiSecurityConfigSchema = z.object({
   AUTH_LOGIN_IP_LIMIT: PositiveIntegerSchema.default(20),
   AUTH_RATE_LIMIT_WINDOW_SECONDS: PositiveIntegerSchema.default(900),
   AUTH_REGISTER_IP_LIMIT: PositiveIntegerSchema.default(5),
+  AVATAR_PAIRING_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .max(3600)
+    .default(600),
+  AVATAR_PAIRING_CLOCK_SKEW_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(30)
+    .max(900)
+    .default(300),
+  AVATAR_PAIRING_MAX_PENDING: z.coerce.number().int().min(1).max(10).default(3),
+  AVATAR_PAIRING_CREATE_LIMIT: PositiveIntegerSchema.default(10),
+  AVATAR_PAIRING_CLAIM_IP_LIMIT: PositiveIntegerSchema.default(30),
+  AVATAR_PAIRING_CLAIM_TOKEN_LIMIT: PositiveIntegerSchema.default(10),
   SESSION_COOKIE_NAME: z
     .string()
     .regex(/^[a-z0-9_]+$/)

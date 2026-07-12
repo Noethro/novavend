@@ -19,6 +19,7 @@
     "@novavend/config": "workspace:*",
     "@novavend/contracts": "workspace:*",
     "@novavend/database": "workspace:*",
+    "@novavend/secondlife-protocol": "workspace:*",
     "class-transformer": "latest",
     "class-validator": "latest",
     "fastify": "latest",
