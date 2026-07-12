@@ -49,7 +49,10 @@ pnpm format:check
 `pnpm test:e2e` starts the web development server automatically and requires the
 Chromium binary installed with `pnpm exec playwright install chromium`.
 
-Database tooling is available through `pnpm db:generate`, `pnpm db:migrate`, and
-`pnpm db:studio`.
+Database tooling is available through `pnpm db:generate`, `pnpm db:check`,
+`pnpm db:migrate`, and `pnpm db:studio`.
 
 See [the PRD](docs/PRD.md) and [TASK-001](docs/CODEX_TASK_001_REPOSITORY_BOOTSTRAP.md) for product boundaries and acceptance criteria.
+
+Core tenancy architecture is documented in [the architecture guide](docs/ARCHITECTURE.md),
+[the database schema](docs/DATABASE_SCHEMA.md), and the ADRs under `docs/ADR`.
