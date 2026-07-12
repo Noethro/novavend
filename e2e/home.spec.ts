@@ -26,7 +26,10 @@ test('switches and persists dashboard languages across routes', async ({
   await expect(
     page.getByRole('heading', { name: 'システム状態' }),
   ).toBeVisible();
-  await expect(page.getByText('未接続')).toHaveCount(5);
+  await expect(page.locator('.status-row strong.neutral')).toHaveCount(5);
+  await expect(page.locator('.status-row strong.neutral').first()).toHaveText(
+    '未接続',
+  );
 });
 
 test('keeps mobile navigation accessible at 320px', async ({ page }) => {
