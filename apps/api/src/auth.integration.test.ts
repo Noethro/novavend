@@ -481,7 +481,7 @@ describe.sequential('authentication and onboarding integration', () => {
         }),
       ),
     );
-    expect([first.json().code, replay.json().code].sort()).toEqual([
+    expect([first!.json().code, replay!.json().code].sort()).toEqual([
       'LINKED',
       'REPLAYED',
     ]);
@@ -550,9 +550,12 @@ describe.sequential('authentication and onboarding integration', () => {
     const [user] = await database.client.unsafe<Array<{ id: string }>>(
       "select id from users where email_normalized='support@example.com'",
     );
+    if (!user) {
+      throw new Error('Expected registered support user');
+    }
     await database.client.unsafe(
       "insert into workspace_members(workspace_id,user_id,role,status,joined_at) values ($1,$2,'support','active',now())",
-      [workspaceId, user?.id],
+      [workspaceId, user.id],
     );
     const denied = await app.inject({
       headers: { cookie: cookieFrom(second), origin },
@@ -562,7 +565,7 @@ describe.sequential('authentication and onboarding integration', () => {
     expect(denied.statusCode).toBe(403);
     await database.client.unsafe(
       "update workspace_members set role='manager' where user_id=$1",
-      [user?.id],
+      [user.id],
     );
     expect(
       (
