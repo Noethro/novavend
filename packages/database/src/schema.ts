@@ -69,6 +69,61 @@ export const users = pgTable(
   ],
 );
 
+export const userPasswordCredentials = pgTable('user_password_credentials', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, {
+      onDelete: 'restrict',
+      onUpdate: 'cascade',
+    }),
+  passwordHash: text('password_hash').notNull(),
+  passwordUpdatedAt: timestamp('password_updated_at', {
+    mode: 'date',
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+  ...timestamps,
+});
+
+export const userSessions = pgTable(
+  'user_sessions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, {
+        onDelete: 'restrict',
+        onUpdate: 'cascade',
+      }),
+    tokenHash: text('token_hash').notNull(),
+    createdAt: timestamp('created_at', { mode: 'date', withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    lastSeenAt: timestamp('last_seen_at', {
+      mode: 'date',
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+    expiresAt: timestamp('expires_at', {
+      mode: 'date',
+      withTimezone: true,
+    }).notNull(),
+    revokedAt: timestamp('revoked_at', { mode: 'date', withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex('user_sessions_token_hash_unique').on(table.tokenHash),
+    index('user_sessions_active_lookup_idx').on(
+      table.tokenHash,
+      table.expiresAt,
+      table.revokedAt,
+    ),
+    index('user_sessions_user_idx').on(table.userId),
+    index('user_sessions_expires_at_idx').on(table.expiresAt),
+  ],
+);
+
 export const workspaces = pgTable(
   'workspaces',
   {
@@ -250,6 +305,8 @@ export const schema = {
   avatarAccounts,
   idempotencyRecords,
   users,
+  userPasswordCredentials,
+  userSessions,
   workspaceAvatarAccounts,
   workspaceMembers,
   workspaces,
@@ -257,6 +314,9 @@ export const schema = {
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type UserPasswordCredential =
+  typeof userPasswordCredentials.$inferSelect;
+export type UserSession = typeof userSessions.$inferSelect;
 export type Workspace = typeof workspaces.$inferSelect;
 export type NewWorkspace = typeof workspaces.$inferInsert;
 export type WorkspaceMember = typeof workspaceMembers.$inferSelect;

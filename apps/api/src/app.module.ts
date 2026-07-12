@@ -4,6 +4,8 @@ import { createDatabase } from '@novavend/database';
 import Redis from 'ioredis';
 import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
+import { AuthController, OnboardingController } from './auth.controller';
+import { AuthService } from './auth.service';
 import {
   HealthService,
   POSTGRES_HEALTH_CHECK,
@@ -24,12 +26,17 @@ const config = loadApiConfig(process.env);
       pinoHttp: {
         customProps: (request) => ({ correlationId: request.id }),
         level: config.LOG_LEVEL,
-        redact: ['req.headers.authorization'],
+        redact: [
+          'req.headers.authorization',
+          'req.headers.cookie',
+          'res.headers.set-cookie',
+        ],
       },
     }),
   ],
-  controllers: [AppController],
+  controllers: [AppController, AuthController, OnboardingController],
   providers: [
+    AuthService,
     HealthService,
     InfrastructureService,
     {

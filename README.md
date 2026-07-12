@@ -17,7 +17,7 @@ This repository currently contains infrastructure only. Authentication, products
 
 ## Prerequisites
 
-- Node.js 20.19 or newer
+- Node.js 24.7 or newer (the authentication layer uses the maintained built-in Argon2id API)
 - pnpm 11 or newer
 - Docker with Docker Compose
 
@@ -31,6 +31,12 @@ pnpm dev
 ```
 
 The web app listens on `http://localhost:3000`; the API listens on `http://localhost:3001`.
+
+The server-capable application exposes `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`,
+`GET /auth/session`, and authenticated `POST /onboarding/workspace`. Configure the exact browser
+origin with `API_ALLOWED_WEB_ORIGIN`. Sessions are opaque HttpOnly cookies; no auth token is stored in
+browser storage. PostgreSQL stores only token hashes and Argon2id password hashes. Redis rate limits
+registration and login and fails closed when unavailable.
 
 ## Quality commands
 
@@ -69,3 +75,9 @@ The dashboard language selector supports English, Türkçe, Deutsch, Русск�
 Language selection is stored in the browser and applies to both the overview and system-status pages.
 Localization architecture and contribution rules are documented in
 [the internationalization guide](docs/INTERNATIONALIZATION.md).
+
+The Pages preview also exports `/login/`, `/register/`, and `/onboarding/` in all six languages. These
+forms are intentionally disabled because Pages does not host the API, PostgreSQL, or Redis and never
+simulates a successful account action.
+
+Email verification, password recovery, MFA, OAuth, and managed backend hosting are deferred.

@@ -24,7 +24,7 @@ jobs:
           run_install: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - uses: actions/configure-pages@v5
       - run: pnpm install --frozen-lockfile
@@ -37,6 +37,7 @@ jobs:
         env:
           GITHUB_PAGES: 'true'
           NEXT_PUBLIC_API_URL: https://api.not-hosted.invalid
+          NEXT_PUBLIC_PREVIEW_MODE: 'true'
       - run: pnpm --filter @novavend/web test:static-export
       - uses: actions/upload-pages-artifact@v3
         with:

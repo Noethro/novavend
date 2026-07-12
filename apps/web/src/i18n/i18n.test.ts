@@ -71,7 +71,7 @@ describe('locale model', () => {
 
 describe('translation dictionaries', () => {
   it('contains every English key in all six dictionaries', () => {
-    const keys = Object.keys(englishDictionary).sort();
+    const keys = Object.keys(dictionaries.en).sort();
     for (const locale of supportedLocales) {
       expect(Object.keys(dictionaries[locale]).sort()).toEqual(keys);
       expect(Object.values(dictionaries[locale]).every(Boolean)).toBe(true);

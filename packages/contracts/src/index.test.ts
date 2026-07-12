@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ApiErrorResponseSchema, HealthResponseSchema } from './index';
+import {
+  ApiErrorResponseSchema,
+  HealthResponseSchema,
+  LoginRequestSchema,
+  OnboardingWorkspaceRequestSchema,
+  RegisterRequestSchema,
+} from './index';
 
 describe('HealthResponseSchema', () => {
   it('accepts a healthy service response', () => {
@@ -9,6 +15,40 @@ describe('HealthResponseSchema', () => {
       service: 'api',
       status: 'ok',
     });
+  });
+});
+
+describe('authentication contracts', () => {
+  it('accepts valid registration, login, and onboarding payloads', () => {
+    expect(
+      RegisterRequestSchema.safeParse({
+        displayName: 'Merchant',
+        email: 'merchant@example.com',
+        password: 'twelve-chars!',
+      }).success,
+    ).toBe(true);
+    expect(
+      LoginRequestSchema.safeParse({
+        email: 'merchant@example.com',
+        password: 'twelve-chars!',
+      }).success,
+    ).toBe(true);
+    expect(
+      OnboardingWorkspaceRequestSchema.safeParse({ name: 'Nova Shop' }).success,
+    ).toBe(true);
+  });
+
+  it('rejects short passwords and malformed identity data', () => {
+    expect(
+      RegisterRequestSchema.safeParse({
+        displayName: '',
+        email: 'bad',
+        password: 'short',
+      }).success,
+    ).toBe(false);
+    expect(
+      LoginRequestSchema.safeParse({ email: 'bad', password: 'short' }).success,
+    ).toBe(false);
   });
 });
 

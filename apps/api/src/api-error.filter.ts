@@ -45,6 +45,14 @@ export class ApiErrorFilter implements ExceptionFilter {
         ? body.error
         : 'HTTP_ERROR';
 
+    if (
+      status === 429 &&
+      'retryAfter' in body &&
+      typeof body.retryAfter === 'number'
+    ) {
+      void reply.header('retry-after', String(body.retryAfter));
+    }
+
     const error = ApiErrorResponseSchema.parse({
       code: errorName.toUpperCase().replaceAll(/[^A-Z0-9]+/g, '_'),
       correlationId: request.id,

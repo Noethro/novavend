@@ -36,6 +36,7 @@ hydration mismatch.
 - `apps/web/src/i18n/locales.ts`: typed locale identifiers, browser normalization, persistence, and
   resolution.
 - `apps/web/src/i18n/dictionaries.ts`: the canonical English key set and all six source dictionaries.
+- `apps/web/src/i18n/auth-dictionaries.ts`: complete authentication/onboarding text for all six locales.
 - `apps/web/src/i18n/locale-provider.tsx`: the single React locale state boundary and typed translator.
 - `apps/web/src/i18n/formatters.ts`: shared date, time, integer, decimal, percentage, and `L$`
   formatting.
@@ -79,3 +80,7 @@ The strategy uses neither locale-prefixed routes nor middleware. GitHub Pages ro
 `/novavend/` and `/novavend/status/`; Next.js applies the `/novavend` base path to links and assets at
 build time. Static output verification checks both HTML files, repository-scoped assets, and dashboard
 markers.
+
+Authentication routes use the same provider and browser preference. `/login`, `/register`, and
+`/onboarding` are not locale-prefixed and remain exportable beneath `/novavend`. Preview mode renders
+localized forms but disables submission before any network request.

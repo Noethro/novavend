@@ -52,6 +52,23 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
 export function DashboardShell({ children }: { children: ReactNode }) {
   const { ready, t } = useLocale();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+
+  if (
+    ['/login', '/register', '/onboarding'].some((route) =>
+      pathname.endsWith(route),
+    )
+  ) {
+    return (
+      <div className="auth-shell" data-locale-ready={ready}>
+        <header>
+          <strong>NovaVend</strong>
+          <LanguageSelector />
+        </header>
+        <main>{children}</main>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-shell" data-locale-ready={ready}>
