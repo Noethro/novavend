@@ -6,6 +6,7 @@ import {
   DeviceTypeSchema,
   PROTOCOL_VERSION,
   RequestEnvelopeSchema,
+  type AvatarPairingClaimEnvelope,
   parseAvatarPairingClaim,
   parseSimulatorHeaders,
 } from './index';
@@ -52,7 +53,7 @@ describe('device types', () => {
   });
 });
 
-const claim = {
+const claim: AvatarPairingClaimEnvelope = {
   ...envelope,
   deviceType: DeviceType.AvatarLink,
   payload: { pairingToken: 'safe_base64url_token_value' },
