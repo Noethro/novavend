@@ -59,7 +59,9 @@ test('renders honest authentication preview routes without API requests', async 
   for (const route of ['/login/', '/register/', '/onboarding/']) {
     await page.goto(route);
     await expect(page.locator('[data-auth-screen]')).toBeVisible();
-    await expect(page.getByRole('button')).toBeDisabled();
+    await expect(
+      page.locator('[data-auth-screen] button[type="submit"]'),
+    ).toBeDisabled();
   }
 
   await page.goto('/login/');

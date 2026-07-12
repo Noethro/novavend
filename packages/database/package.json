@@ -13,7 +13,7 @@
     "db:check": "drizzle-kit check",
     "db:studio": "drizzle-kit studio",
     "lint": "eslint .",
-    "test": "vitest run --exclude **/*.integration.test.ts",
+    "test": "vitest run --exclude \"**/*.integration.test.ts\"",
     "test:integration": "vitest run src/tenancy.integration.test.ts",
     "typecheck": "tsc --noEmit"
   },
