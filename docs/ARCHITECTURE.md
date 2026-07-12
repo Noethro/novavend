@@ -32,3 +32,14 @@ Public identifiers are PostgreSQL UUIDs generated with `gen_random_uuid()`. Data
 Raw passwords, session tokens, pairing codes, device credentials, and idempotency keys must never be logged or persisted. Idempotency repositories accept only hashes. Audit metadata must be allowlisted by callers and must never include secrets.
 
 See [ADR-0001](ADR/0001-modular-monolith.md), [ADR-0002](ADR/0002-workspace-isolation.md), and [the database schema](DATABASE_SCHEMA.md).
+
+## Frontend localization boundary
+
+TASK-003 keeps locale state in one client-side `LocaleProvider` inside the root web layout. The
+dashboard shell, pages, language selector, typed navigation, committed dictionaries, and shared
+`Intl` formatters live under `apps/web/src`. Pages do not duplicate locale resolution or persistence
+logic. This boundary requires no API, cookie, middleware, or server session and remains compatible
+with both normal Next.js builds and the `/novavend` GitHub Pages static export.
+
+See [the internationalization guide](INTERNATIONALIZATION.md) for locale resolution, dictionary, and
+testing rules.
