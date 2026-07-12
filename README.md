@@ -56,3 +56,11 @@ See [the PRD](docs/PRD.md) and [TASK-001](docs/CODEX_TASK_001_REPOSITORY_BOOTSTR
 
 Core tenancy architecture is documented in [the architecture guide](docs/ARCHITECTURE.md),
 [the database schema](docs/DATABASE_SCHEMA.md), and the ADRs under `docs/ADR`.
+
+## Hosted preview
+
+The frontend-only development preview is available at
+[https://noethro.github.io/novavend/](https://noethro.github.io/novavend/). No local installation is
+required to view it. The Pages preview does not host an API, database, authentication, or commerce
+services; those require a future managed deployment. Approved changes are rebuilt and deployed
+automatically after they are merged into `main`.
