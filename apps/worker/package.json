@@ -1,0 +1,21 @@
+{
+  "name": "@novavend/worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx watch src/main.ts",
+    "lint": "eslint .",
+    "start": "node dist/main.js",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@novavend/config": "workspace:*",
+    "bullmq": "latest",
+    "pino": "latest"
+  },
+  "devDependencies": {
+    "tsx": "latest"
+  }
+}

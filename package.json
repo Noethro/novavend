@@ -1,0 +1,33 @@
+{
+  "name": "novavend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Clean-room Second Life commerce platform monorepo.",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=20.19.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:e2e": "playwright test",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "@eslint/js": "latest",
+    "@playwright/test": "latest",
+    "@types/node": "latest",
+    "eslint": "latest",
+    "eslint-config-prettier": "latest",
+    "prettier": "latest",
+    "turbo": "latest",
+    "typescript": "6.0.2",
+    "typescript-eslint": "latest",
+    "vitest": "latest"
+  }
+}

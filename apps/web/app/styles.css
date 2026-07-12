@@ -1,0 +1,48 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  background: #07130f;
+  color: #e9fff5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  background: radial-gradient(circle at top, #123c2c, #07130f 55%);
+}
+
+h1,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(3rem, 10vw, 7rem);
+  letter-spacing: -0.07em;
+}
+
+.eyebrow {
+  color: #72e2ad;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.lede {
+  max-width: 40rem;
+  color: #b8d7c9;
+  font-size: 1.25rem;
+  line-height: 1.6;
+}
